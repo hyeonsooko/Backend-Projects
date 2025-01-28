@@ -1,7 +1,7 @@
 # importing required modules
-import argparse
 import json
 import datetime
+import click
 
 # create JSON file
 def create_data(data):
@@ -33,7 +33,7 @@ def update_data(data):
 
 
 # adding a new task
-def add(des: str):
+def _add(des: str):
     data = get_data()
     data.append({
                     "id": len(data) + 1,
@@ -46,19 +46,20 @@ def add(des: str):
     return print(f"Task added succesfully (ID: {len(data)})")
 
 # updating a task
-def update(id, des):
+def _update(id, des):
     data = get_data()
     if len(data) < id:
         return print("task does not exist")
     for i in data:
         if i["id"] == id:
             i["description"] = des
+            i["updatedAt"] = datetime.datetime.now().strftime("%x")
             update_data(data)
             return print(f"Task updated successfully (ID: {id})")
     return print(f"Task does not exist (ID: {id})")
 
 # delete a task
-def delete(id):
+def _delete(id):
     data = get_data()
     if len(data) < id:
         return print(f"Task does not exist (ID: {id})")
@@ -72,7 +73,7 @@ def delete(id):
     return print(f"Task does not exist (ID: {id})")
 
 # marking a task as in progress or done
-def in_progress(id):
+def _in_progress(id):
     data = get_data()
     if len(data) < id:
         return print(f"Task does not exist (ID: {id})")
@@ -82,11 +83,12 @@ def in_progress(id):
                 return print(f"Task is already in progress (ID: {id})")
             else:
                 i["status"] = "in-progress"
+                i["updatedAt"] = datetime.datetime.now().strftime("%x")
                 update_data(data)
                 return print(f"Task status updated successfully (ID: {id})")
     return print(f"Task does not exist (ID: {id})")
 
-def done(id):
+def _done(id):
     data = get_data()
     if len(data) < id:
         return print(f"Task does not exist (ID: {id})")
@@ -96,12 +98,13 @@ def done(id):
                 return print(f"Task is already done (ID: {id})")
             else:
                 i["status"] = "done"
+                i["updatedAt"] = datetime.datetime.now().strftime("%x")
                 update_data(data)
                 return print(f"Task status updated successfully (ID: {id})")
     return print(f"Task does not exist (ID: {id})")
 
 # list all tasks
-def list():
+def _list():
     try:
         data = get_data()
         if(data):
@@ -113,62 +116,98 @@ def list():
         print("error listing tasks.")
 
 # Listing tasks by status
-def list_done():
+def _list_done():
+    c = 0
     try:
         data = get_data()
         if (data):
             for id in data:
                 if (id["status"] == "done"):
                     print(id["description"])
-            return print("There is no tasks done.")
+                    c += 1
+            if c == 0:
+                return print("There is no tasks done.")
         else:
             print("there is no data.")
     except:
         print("error listing finished tasks")
 
-def list_todo():
+def _list_todo():
+    c = 0
     try:
         data = get_data()
         if (data):
             for id in data:
                 if (id["status"] == "todo"):
                     print(id["description"])
-            return print("There is no tasks to do.")
+                    c += 1
+            if c == 0:
+                return print("There is no tasks to do.")
         else:
             print("there is no data.")
     except:
         print("error listing finished tasks")
 
-def list_in_progress():
+def _list_in_progress():
+    c = 0
     try:
         data = get_data()
         if (data):
             for id in data:
                 if (id["status"] == "in-progress"):
                     print(id["description"])
-            return print("There is no tasks in progress.")
+                    c += 1
+            if c == 0:
+                return print("There is no tasks in progress.")
         else:
             print("there is no data.")
     except:
         print("error listing finished tasks")
 
 # main function
+@click.group()
 def main():
-    # create a parser object
-    parser = argparse.ArgumentParser(description= "A task tracker program.")
+    pass
 
-    # add argument
-    parser.add_argument("-l", "--list",
-                        help = "lists all tasks.")
-    parser.add_argument("-a", "--add", type = str, nargs = 1,
-                        metavar = "description", default = None,
-                        help = "add a task in a list.")
-    # parse the arguments from standard input
-    args = parser.parse_args()
+@main.command()
+@click.argument('description')
+def add(description):
+    _add(description)
 
-    # check if add argument has any input data.
-    if args.list:
-        return list()
+@main.command()
+@click.argument('id', type = int)
+def delete(id):
+    _delete(id)
+
+@main.command()
+@click.argument('id', nargs=1)
+@click.argument('des', nargs=1)
+def update(id, des):
+    _update(int(id), des)
+
+@main.command()
+@click.argument('id', nargs=1)
+def mark_in_progress(id):
+    _in_progress(int(id))
+
+@main.command()
+@click.argument('id', nargs=1)
+def mark_done(id):
+    _done(int(id))
+
+@main.command()
+@click.option('--option', default=None)
+def list(option):
+    if (option == None):
+        _list()
+    elif (option == "todo"):
+        _list_todo()
+    elif (option == "in-progress"):
+        _list_in_progress()
+    elif (option == "done"):
+        _list_done()
+    else:
+        click.echo("Not a valid option")
 
 if __name__ == "__main__":
     # calling the main function
